@@ -7,25 +7,33 @@ else
   echo "serverAddresses is set to '$serverAddresses'";
 fi
 
-mongoDbInitiateTemplate="rs.initiate({  _id : \"myReplSet\",  members: [{{members}}]})"
-membersTemplate="{ _id : {{id}}, host : \"{{machine}}\" }"
+mongoDbInitiateTemplate="rs.initiate({ _id : \"@@clusterRole@@\", members: [@@members@@] })"
+membersTemplate="{ _id : @@id@@, host : \"@@machine@@\" }"
 
-IFS=',' read -r -a serverAddresssesSplit <<< "$serverAddresses"
+IFS=',' read -r -a serverAddressesSplit <<< "$serverAddresses"
 
 cnt=0
-declare -a memberFormated=()
+declare -a memberFormatted=()
 
 for serverAddress in "${serverAddressesSplit[@]}"
 do
-  echo $cnt
-  echo "$serverAddress"
-  memberFormated[${#memberFormated[@]}]=severAddress
-  cnt=cnt+1
-  # replace id by cnt
-  # replace machine by machine name
-  # put the result in a new array
+  idReplaced=${membersTemplate/@@id@@/$cnt}
+  machineReplaced=${idReplaced/@@machine@@/$serverAddress}
+  memberFormatted[${#memberFormatted[@]}]=$machineReplaced
+  cnt=$((cnt+1))
 done
 
-# run docker compose --profile shard with the string.
+echo "${memberFormatted[@]}"
 
+memberFormattedJoinedByComa=$(IFS=, ; echo "${memberFormatted[*]}")
+
+membersReplaced=${mongoDbInitiateTemplate/@@members@@/$memberFormattedJoinedByComa}
+
+configServerInitiate=${membersReplaced/@@clusterRole@@/replicaSetConfigServer}
+shardServerInitiate=${membersReplaced/@@clusterRole@@/replicaSetShardServer}
+
+echo "$configServerInitiate"
+echo "$shardServerInitiate"
+
+# execute initiate.
 
