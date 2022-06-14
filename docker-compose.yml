@@ -1,4 +1,40 @@
 version: "3.9"
 services:
-  mongoDB:
+
+  mongo-config-server:
     image: "mongo:latest"
+    container_name: mongo-config-server
+    networks:
+      - mongoCluster
+    ports:
+      - "27017:27017"
+    command: mongod --config /var/mongoDBConfigServer.conf
+    volumes:
+      - "./mongoDBConfigServer.conf:/var/mongoDBConfigServer.conf"
+    profiles: ["config-server"]
+
+  mongo-shard-server:
+    image: "mongo:latest"
+    container_name: mongo-shard-server
+    networks:
+      - mongoCluster
+    ports:
+      - "27018:27017"
+    command: mongod --config /var/mongoDBShardServer.conf
+    volumes:
+      - "./mongoDBShardServer.conf:/var/mongoDBShardServer.conf"
+    profiles: ["shard-server"]
+
+  mongo-sharding-server:
+    image: "mongo:latest"
+    container_name: mongo-shard
+    networks:
+      - mongoCluster
+    ports:
+      - "27019:27017"
+    command: mongos --configdb replicaConfigServer1/${serverAddresses}
+    profiles: ["shard"]
+
+networks:
+  mongoCluster:
+
